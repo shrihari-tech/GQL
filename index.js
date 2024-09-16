@@ -9,6 +9,19 @@ dotenv.config();
 const {MONGO_URI} = process.env;
 const uri = MONGO_URI;
 const client = new MongoClient(uri);
+const checkConnection = async () => {
+    console.log("loading to connect to Database");
+    try{
+        await client.connect();
+        console.log("Connected to Database");
+    }
+    catch(err){
+        console.log("Error Connecting to Database",err);
+    }
+}  
+
+checkConnection();
+
 
 const connectToDatabase = async () => {
     if(!client.isConnected){
@@ -23,10 +36,9 @@ const resolvers = {
     Query:{
         async games(){
             const db = await connectToDatabase();
-            const games =  db.collection("games").find().toArray();
-            console.log("Games Fetched",games);
+            const games = await db.collection("games").find().toArray();
+            // console.log("Games Fetched",games);
             return games;
-            
         },
         async authors(){
             const db = await connectToDatabase();
@@ -39,59 +51,101 @@ const resolvers = {
         async review(_,args){
             const db = await connectToDatabase();
             // return db.reviews.find((review)=>review.id === args.id);
-            return db.collection("reviews").findOne({id:args.id});
+            const review  = await db.collection("reviews").findOne({id:args.id});
+            // console.log("Fetched Review",review);
+            return review;
         },
         async game(_,args){
             const db = await connectToDatabase();
             // return db.games.find((game)=>game.id === args.id);
             return db.collection("games").findOne({id:args.id});
         },
-        author(_,args){
-            return db.authors.find((author)=>author.id === args.id);
+        async author(_,args){
+            const db = await connectToDatabase();
+            const author = await db.collection("authors").findOne({id:args.id});
+            // return db.authors.find((author)=>author.id === args.id);
+            // console.log("Author Fethed",author);
+            return author;
         }
     },
     Game:{
-        reviews(parent){
-            return db.reviews.filter((review)=>review.game_id === parent.id);
+        async reviews(parent){
+            const db = await connectToDatabase();
+            // return db.reviews.filter((review)=>review.game_id === parent.id);
+            return db.collection("reviews").find({game_id:parent.id}).toArray();
         }
     },
     Author:{
-        reviews(parent){
-            return db.reviews.filter((review)=>review.author_id === parent.id);
+        async reviews(parent){
+            const db = await connectToDatabase();
+            // return db.reviews.filter((review)=>review.author_id === parent.id);
+            return db.collection("reviews").find({author_id:parent.id}).toArray();
         }
     },
     Review:{
-        author(parent){
-            return db.authors.filter((author)=>author.id === parent.author_id);
+        async author(parent){
+            const db = await connectToDatabase();
+            // return db.authors.filter((author)=>author.id === parent.author_id);
+            return db.collection("authors").findOne({id:parent.author_id});
         },
-        game(parent){
-            return db.games.filter((game)=>game.id === parent.game_id);
+        async game(parent){
+            const db = await connectToDatabase();
+            // return db.games.filter((game)=>game.id === parent.game_id);
+            return db.collection("games").findOne({id:parent.game_id});
         }
     },
     Mutation:{
-        deleteGame(_,args){
-            db.games = db.games.filter((game)=>game.id !== args.id);
-            return db.games;
+        async deleteGame(_,args){
+            const db = await connectToDatabase();
+            // db.games = db.games.filter((game)=>game.id !== args.id);
+            // return db.games;
+            await db.collection("games").deleteOne({id:args.id});
+            return db.collection("games").find().toArray();
         },
-        addGame(_,args){
+        
+        async deleteAuthor(_,args){
+            const db = await connectToDatabase();
+            await db.collection("authors").deleteOne({id:args.id});
+            return db.collection("authors").find().toArray();
+        },
+
+        async addGame(_,args){
+            const db = await connectToDatabase();
             let game = {
                 ...args.game,
                 id: Math.floor(Math.random() * 1000).toString()
-            }
-            db.games.push(game);
+            };
+            // db.games.push(game);
+            // return game;
+            await db.collection("games").insertOne(game);
             return game;
         },
-        updateGame(_,args){
-            db.games = db.games.map((game)=>{
-                if(game.id === args.id){
-                    return{
-                        ...game,
-                        ...args.edits
-                    }
-                }
-                return game;
-            })
-            return db.games.find((game)=>game.id === args.id);
+
+        async addAuthor(_,args){
+            const db = await connectToDatabase();
+            let author = {
+                ...args.game,
+                id:Math.floor(Math.random()*1000).toString()
+            }
+        },
+        
+        async updateGame(_,args){
+            const db = await connectToDatabase();
+            // db.games = db.games.map((game)=>{
+            //     if(game.id === args.id){
+            //         return{
+            //             ...game,
+            //             ...args.edits
+            //         }
+            //     }
+            //     return game;
+            // })
+            // return db.games.find((game)=>game.id === args.id);
+            await db.collection("games").updateOne(
+                { id:args.id },
+                { $set:args.edits }
+            );
+            return db.collection("games").findOne({id:args.id});
         }
     }
 }
