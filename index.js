@@ -8,7 +8,7 @@ dotenv.config();
 
 const {MONGO_URI} = process.env;
 const uri = MONGO_URI;
-const client = new MongoClient(uri);
+const client = new MongoClient("mongodb://localhost:27017/");
 const checkConnection = async () => {
     console.log("loading to connect to Database");
     try{
@@ -124,9 +124,11 @@ const resolvers = {
         async addAuthor(_,args){
             const db = await connectToDatabase();
             let author = {
-                ...args.game,
+                ...args.author,
                 id:Math.floor(Math.random()*1000).toString()
             }
+            await db.collection("authors").insertOne(author);
+            return author;
         },
         
         async updateGame(_,args){
@@ -146,6 +148,14 @@ const resolvers = {
                 { $set:args.edits }
             );
             return db.collection("games").findOne({id:args.id});
+        },
+        async updateAuthor(_,args){
+            const db = await connectToDatabase();
+            await db.collection("authors").updateOne(
+                {id:args.id},
+                {$set:args.edits}
+            );
+            return db.collection("authors").findOne({id:args.id});
         }
     }
 }

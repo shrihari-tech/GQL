@@ -28,7 +28,7 @@ let games = [
   ]
 
     const uri = MONGO_URI;
-    const client = new MongoClient(uri,
+    const client = new MongoClient("mongodb://localhost:27017/",
         {
             useNewUrlParser:true,
             useUnifiedTopology: true

@@ -65,6 +65,16 @@ export const UPDATE_GAME = gql`
     }
 `;
 
+export const UPDATE_AUTHOR = gql`
+    mutation UpdateAuthor($id:ID!, $edits:EditAuthorInput!){
+        updateAuthor(id:$id, edits:$edits){
+            id,
+            name,
+            verified
+        }
+    }
+`
+
 export const DELETE_GAME = gql`
     mutation DeleteGame($id:ID!){
         deleteGame(id:$id){
